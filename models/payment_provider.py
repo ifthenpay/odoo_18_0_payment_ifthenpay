@@ -118,7 +118,6 @@ class PaymentProvider(models.Model):
             raise UserError(_("Unable to connect to ifthenpay because the provider is disabled."))
         
         base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
-        base_url = 'https://free-caiman-funny.ngrok-free.app'
         all_fields_data = transaction.read([])
         _logger.info("transaction: %s  ", all_fields_data)
 
@@ -256,7 +255,6 @@ class PaymentProvider(models.Model):
 
             callback = '/payment/ifthenpay/s2s_callback?amount=[AMOUNT]&reference=[ORDER_ID]&apk=[ANTI_PHISHING_KEY]'
             base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url') + callback
-            base_url = 'https://free-caiman-funny.ngrok-free.app' + callback
             payload = {
                 'apKey': result.get('tokenApi'),
                 'chave': result.get('gatewayKey'),
