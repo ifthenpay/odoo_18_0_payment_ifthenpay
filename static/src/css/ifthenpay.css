@@ -1,0 +1,65 @@
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+#ifthenpay_modal {
+    padding: 0 !important;
+}
+
+#ifthenpay_modal .modal-dialog {
+    margin: 0;
+    width: 100%;
+    max-width: 100%;
+    height: 100%;
+}
+
+#ifthenpay_modal .modal-content {
+    height: 100%;
+    border-radius: 0;
+    border: none;
+    display: flex;
+    flex-direction: column;
+}
+
+#ifthenpay_modal .modal-header {
+    flex-shrink: 0;
+}
+
+#ifthenpay_modal .modal-body {
+    flex-grow: 1;
+    overflow: hidden;
+    padding: 0;
+    position: relative;
+}
+
+#ifthenpay_iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    display: block;
+}
+
+#ifthenpay_loading_modal {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    z-index: 10;
+    background-color: rgba(255, 255, 255, 0.9);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+#ifthenpay_loading_modal .spinner-border {
+    margin-bottom: 10px;
+}
+
+#ifthenpay_loading_modal p {
+    transform: none;
+    animation: none;
+}

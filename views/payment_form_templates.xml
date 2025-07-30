@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <template id="payment_ifthenpay.method_form" inherit_id="payment.method_form">
+        <input name="o_payment_radio" position="attributes">
+            <attribute name="t-att-data-ifthenpay-inline-form-values">
+                provider_sudo._ifthenpay_get_inline_form_values(currency)
+            </attribute>
+            <attribute name="t-att-data-ifthenpay-color">
+                "blue"
+            </attribute>
+            <attribute name="class" add="o_payment_ifthenpay_radio" separator=" "/>
+            <attribute name="t-att-data-payment-method-code">
+                 provider_sudo.code == 'ifthenpay' and 'ifthenpay' or False
+            </attribute>
+        </input>
+    </template>
+
+    <template id="ifthenpay_checkout_modal">
+        <div class="modal fade" id="ifthenpay_modal" tabindex="-1" role="dialog" aria-labelledby="ifthenpayModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="ifthenpayModalLabel" data-oe-translation="1">Complete your payment with ifthenpay</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-0" style="position: relative;">
+                        <div id="ifthenpay_loading_modal" class="d-flex justify-content-center align-items-center position-absolute w-100 h-100 bg-white" style="top:0; left:0; z-index: 10;">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="sr-only"></span>
+                            </div>
+                            <p class="mt-2" data-oe-translation="1">Redirecting to ifthenpay...</p>
+                        </div>
+                        <iframe id="ifthenpay_iframe" src="" style="width:100%; height: 600px; border:none; display:none;" scrolling="auto"></iframe>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template id="ifthenpay_modal_include_global" inherit_id="website.layout">
+        <xpath expr="//body" position="inside">
+            <t t-call="payment_ifthenpay.ifthenpay_checkout_modal"/>
+        </xpath>
+    </template>
+
+</odoo>

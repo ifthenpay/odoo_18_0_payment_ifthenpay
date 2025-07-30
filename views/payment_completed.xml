@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="ifthenpay_iframe_post_message_template" name="ifthenpay Iframe Post Message">
+        <html lang="en">
+            <head>
+                <meta charset="utf-8"/>
+                <title data-oe-translation="1">ifthenpay Payment Status</title>
+                <script type="text/javascript">
+                    if (window.parent) {
+                        window.parent.postMessage({
+                            type: 'ifthenpay_payment_status',
+                            status: '<t t-esc="payment_status"/>',
+                            message: '<t t-esc="message"/>',
+                        }, '*'); // Mude '*' para o domínio do seu Odoo para maior (ex: 'https://seusite.com')
+                    }
+                </script>
+            </head>
+            <body>
+                <p data-oe-translation="1">Processing your payment...</p>
+                <img src="/web/static/src/img/spin.png" alt="Loading" style="width: 50px; height: 50px; animation: spin 1s linear infinite;"/>
+                <style>
+                    @keyframes spin {
+                        0% { transform: rotate(0deg); }
+                        100% { transform: rotate(360deg); }
+                    }
+                </style>
+            </body>
+        </html>
+    </template>
+
+    <template id="ifthenpay_iframe_error_template" name="ifthenpay Iframe Error">
+        <html lang="en">
+            <head>
+                <meta charset="utf-8"/>
+                <title data-oe-translation="1">ifthenpay Error</title>
+            </head>
+            <body>
+                <p><t t-esc="title"/></p>
+                <p><t t-esc="message"/></p>
+            </body>
+        </html>
+    </template>
+</odoo>
