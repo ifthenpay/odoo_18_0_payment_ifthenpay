@@ -26,22 +26,35 @@ const IfThenPayCheckoutWidget = publicWidget.Widget.extend({
 
         if ($ifthenpayRadioInput.length > 0) {
             const $ifthenpayListItem = $ifthenpayRadioInput.closest("li[name='o_payment_option']");
-            const $defaultIconSpan = $ifthenpayListItem.find("span[data-oe-expression*='logo_pm_sudo.image_payment_form']");
-            const $dynamicIconsContainer = this.$('.ifthenpay-dynamic-icons'); 
+            const $dynamicIconsContainer = $ifthenpayListItem.find('.ifthenpay-dynamic-icons');
+            const $defaultIconSpan = $ifthenpayListItem.find("span.shadow-sm");
 
-            if ($defaultIconSpan.length > 0 && $dynamicIconsContainer.length > 0) {
-                // 1. Limpa o conteúdo do span do ícone padrão (remove a imagem padrão do Odoo)
-                $defaultIconSpan.empty();
-                // 2. Move o container dos ícones dinâmicos para dentro do span do ícone padrão
-                $defaultIconSpan.append($dynamicIconsContainer);
-                // 3. Torna o container visível (estava hidden por padrão no XML)
-                $dynamicIconsContainer.show();
+            if ($defaultIconSpan.length > 0 && $defaultIconSpan.find("img[src*='/web/image/payment.method/'][src*='/image_payment_form/'], img[src*='ifthenpay.png']").length === 0) {
+                $defaultIconSpan = $();
+            }
 
-                // 4. Carrega os ícones reais dentro do container movido
-                await this._fetchAndDisplayIcons($dynamicIconsContainer); 
+            if ($defaultIconSpan.length === 0) {
+                $defaultIconSpan = $ifthenpayListItem.find("span[data-bs-toggle='tooltip'][aria-label='ifthenpay']");
+            }
+
+            if ($defaultIconSpan.length === 0) {
+                $defaultIconSpan = $ifthenpayListItem.find("span[data-oe-expression*='logo_pm_sudo.image_payment_form']");
+            }
+
+            if ($dynamicIconsContainer.length > 0) {
+                if ($defaultIconSpan.length > 0) {
+                    $defaultIconSpan.empty();
+                    $defaultIconSpan.append($dynamicIconsContainer);
+                } else {
+                    console.warn("ifthenpay: Span do ícone padrão não encontrado. Anexando ícones dinâmicos diretamente ao item da lista de pagamento.");
+                    $ifthenpayListItem.append($dynamicIconsContainer);
+                }
                 
+                $dynamicIconsContainer.show();
+                await this._fetchAndDisplayIcons($dynamicIconsContainer);
+
             } else {
-                console.warn("ifthenpay: Não foi possível encontrar o span do ícone padrão ou o container de ícones dinâmicos na carga da página.");
+                console.warn("ifthenpay: Não foi possível encontrar o container de ícones dinâmicos IfThenPay dentro do item da lista de pagamento.");
             }
         } else {
             console.log("ifthenpay payment method não encontrado na página (pode não estar ativo ou não nesta vista).");
