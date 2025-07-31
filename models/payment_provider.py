@@ -228,6 +228,11 @@ class PaymentProvider(models.Model):
     @api.onchange('ifthenpay_api_key')
     def _onchange_ifthenpay_api_token(self):
         if not self.ifthenpay_api_key:
+            self.ifthenpay_store_name = ''
+            self.ifthenpay_email_account = ''
+            self.ifthenpay_gateway_key = ''
+            self.ifthenpay_expiry_days = ''
+            self.ifthenpay_accounts_info = ''
             return
 
         try:

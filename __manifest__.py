@@ -1,13 +1,17 @@
 {
     'name': "ifthenpay gateway",
-    'version': '0.0.1',
+    'version': '18.0.0.0.1',
     'author': "ifthenpay",
     'sequence': 350,
     'category': 'Accounting/Payment Providers',
-    'summary': 'The payment services by reference via MULTIBANCO, MB WAY, PAYSHOP, and Credit Card provided by ifthenpay offer numerous advantages for your business.',
+    'summary': 'The payment services by reference via MULTIBANCO, MB WAY, COFIDIS PAY, GOOGLE PAY, APPLE PAY, PIX, PAYSHOP, Credit Card provided by ifthenpay offer numerous advantages for your business.',
     'description': """
-Modern and efficient solution for integrating payment methods
-    """,
+This module integrates ifthenpay's payment gateway into your Odoo store.
+
+Data transmitted to ifthenpay includes customer name, contact info, order reference and payment amount for processing purposes.
+
+For details, refer to our Privacy Policy: https://ifthenpay.com/politica-de-privacidade/
+""",
     'website': "https://ifthenpay.com/",
     'depends': [
         'payment',
@@ -24,8 +28,6 @@ Modern and efficient solution for integrating payment methods
         'data/payment_method_data.xml',
         'data/payment_provider_data.xml',
     ],
-    # 'post_init_hook': 'post_init_hook',
-    # 'uninstall_hook': 'uninstall_hook',
     'installable': True,
     'application': True,
     'auto_install': False,
@@ -34,5 +36,5 @@ Modern and efficient solution for integrating payment methods
             'payment_ifthenpay/static/src/**/*',
         ],
     },
-    'license': 'LGPL-3',
+    'license': 'OPL-1',
 }
