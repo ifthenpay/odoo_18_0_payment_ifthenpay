@@ -46,7 +46,7 @@ const IfThenPayCheckoutWidget = publicWidget.Widget.extend({
                     $defaultIconSpan.empty();
                     $defaultIconSpan.append($dynamicIconsContainer);
                 } else {
-                    console.warn("ifthenpay: Span do ícone padrão não encontrado. Anexando ícones dinâmicos diretamente ao item da lista de pagamento.");
+                    console.warn("ifthenpay: Span do icone padrao nao encontrado. Anexando icones dinamicos diretamente ao item da lista de pagamento.");
                     $ifthenpayListItem.append($dynamicIconsContainer);
                 }
                 
@@ -54,10 +54,10 @@ const IfThenPayCheckoutWidget = publicWidget.Widget.extend({
                 await this._fetchAndDisplayIcons($dynamicIconsContainer);
 
             } else {
-                console.warn("ifthenpay: Não foi possível encontrar o container de ícones dinâmicos IfThenPay dentro do item da lista de pagamento.");
+                console.warn("ifthenpay: Nao foi possivel encontrar o container de icones dinamicos ifthenpay dentro do item da lista de pagamento.");
             }
         } else {
-            console.log("ifthenpay payment method não encontrado na página (pode não estar ativo ou não nesta vista).");
+            console.log("ifthenpay payment method nao encontrado na pagina (pode nao estar ativo ou nao nesta vista).");
         }
 
         this._handleIfThenPayVisibility(); 
@@ -72,7 +72,7 @@ const IfThenPayCheckoutWidget = publicWidget.Widget.extend({
         const $ifthenpayProviderContainer = this.$('.o_payment_provider[data-provider-code="ifthenpay"]');
 
         if ($ifthenpayProviderContainer.length === 0) {
-            console.warn("ifthenpay provider container (formulário inline) não encontrado para manipulação de visibilidade.");
+            console.warn("ifthenpay provider container (formulario inline) nao encontrado para manipulacao de visibilidade.");
             return;
         }
 
@@ -88,12 +88,12 @@ const IfThenPayCheckoutWidget = publicWidget.Widget.extend({
 
     /**
      * Busca os ícones de pagamento do backend e os exibe no container fornecido.
-     * @param {jQuery} targetContainer O elemento jQuery onde os ícones devem ser injetados.
+     * @param {jQuery} targetContainer O elemento jQuery onde os icones devem ser injetados.
      */
     _fetchAndDisplayIcons: async function(targetContainer) {
         console.log('tentando buscar imgs: _fetchAndDisplayIcons')
         if (!targetContainer || targetContainer.length === 0) {
-            console.error("Nenhum container alvo válido fornecido para _fetchAndDisplayIcons.");
+            console.error("Nenhum container alvo valido fornecido para _fetchAndDisplayIcons.");
             return;
         }
 
@@ -116,8 +116,8 @@ const IfThenPayCheckoutWidget = publicWidget.Widget.extend({
             console.log("RPC Result:", result);
 
             if (!Array.isArray(data) || data.length === 0) {
-                console.warn('ifthenpay: Resposta da API inválida do backend ou sem dados para ícones.');
-                targetContainer.html('<p class="text-muted small mb-0">Nenhum método de pagamento disponível.</p>');
+                console.warn('ifthenpay: Resposta da API invalida do backend ou sem dados para icones.');
+                targetContainer.html('<p class="text-muted small mb-0">Nenhum metodo de pagamento disponivel.</p>');
                 return;
             }
 
@@ -131,7 +131,7 @@ const IfThenPayCheckoutWidget = publicWidget.Widget.extend({
                 targetContainer.append(img);
             });
         } catch (err) {
-            console.error('ifthenpay: Falha ao buscar ícones via chamada de backend', err);
+            console.error('ifthenpay: Falha ao buscar icones via chamada de backend', err);
             this.notification.add(_t("ifthenpay: An unexpected error occurred while loading payment methods."), { 
                 type: 'danger',
                 sticky: false,

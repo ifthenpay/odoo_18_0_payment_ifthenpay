@@ -24,7 +24,7 @@ paymentForm.include({
         this._ifthenpayLoadingModal = document.querySelector('#ifthenpay_loading_modal');
 
         if (!this._ifthenpayModal || !this._ifthenpayIframe || !this._ifthenpayLoadingModal) {
-            console.error("ifthenpay: CRÍTICO! Elementos do modal NÃO encontrados. Verifique se o template 'ifthenpay_checkout_modal' está carregado globalmente no HTML.");
+            console.error("ifthenpay: CRITICO! Elementos do modal NAO encontrados. Verifique se o template 'ifthenpay_checkout_modal' esta carregado globalmente no HTML.");
             return _superResult;
         }
 
@@ -44,9 +44,9 @@ paymentForm.include({
             this._ifthenpayIframe.style.display = 'none'; // Esconde o iframe
             
             this._enableButton(true); 
-            // verificar o status do pagamento após o modal ser fechado (manual ou via JS)
+            // verificar o status do pagamento apos o modal ser fechado (manual ou via JS)
             if (this._currentIfthenpayTxRef) {
-                console.log(`ifthenpay: Verificando status da transação ${this._currentIfthenpayTxRef} após fechamento do modal.`);
+                console.log(`ifthenpay: Verificando status da transacao ${this._currentIfthenpayTxRef} apos fechamento do modal.`);
                 try {
                     const statusCheckResponse = await rpc('/payment/ifthenpay/check_transaction_status', {
                         tx_reference: this._currentIfthenpayTxRef,
@@ -59,33 +59,30 @@ paymentForm.include({
                         this._displayErrorDialog(_t("Payment Failed"), _t("The payment was not completed successfully."));
                     } else {
                          console.warn(`ifthenpay: Status desconhecido.`);
-                         // Se o status for desconhecido (ex: 'draft' ainda), o usuário permanece na página de checkout.
+                         // Se o status for desconhecido (ex: 'draft' ainda), o usuario permanece na pagina de checkout.
                     }
                 } catch (error) {
-                    console.error("ifthenpay: Erro ao verificar status da transação após fechar modal:", error);
-                    // Opcional: Mostrar um erro genérico
+                    console.error("ifthenpay: Erro ao verificar status da transacao apos fechar modal:", error);
                 } finally {
-                    this._currentIfthenpayTxRef = null; // Limpa a referência após a verificação
+                    this._currentIfthenpayTxRef = null; // Limpa a referencia apos a verificacao
                 }
             }
         });
 
-        // Adiciona um listener para quando o conteúdo do iframe terminar de carregar
+        // Adiciona um listener para quando o conteudo do iframe terminar de carregar
         // Usamos uma arrow function para manter o contexto 'this'
         this._ifthenpayIframe.addEventListener('load', () => {
             this._ifthenpayLoadingModal.classList.add('d-none');
-            console.log("Ifthenpay: iframe carregado.");
+            console.log("ifthenpay: iframe carregado.");
             this._ifthenpayIframe.style.display = 'block';
 
-            // NOVO: Desbloqueia a UI do Odoo *APÓS* o iframe carregar e o modal aparecer.
-            // Isso garante que o bloqueio do Odoo seja removido quando o usuário puder interagir com o iframe.
+            // Desbloqueia a UI do Odoo *APOS* o iframe carregar e o modal aparecer.
+            // isso garante que o bloqueio do Odoo seja removido quando o usuario puder interagir com o iframe.
             this._enableButton(true); 
         });
 
-        // O listener de 'message' já está bindado corretamente
         window.addEventListener('message', this._onIframeMessage.bind(this), false);
         
-        // Listener para mudança de seleção de método de pagamento
         this.el.addEventListener('change', (ev) => {
             if (ev.target.name === 'o_payment_radio') {
                 const selectedProviderCode = ev.target.dataset.providerCode;
@@ -98,7 +95,7 @@ paymentForm.include({
 
     /**
      * @override
-     * Lida com a submissão do formulário de pagamento.
+     * Lida com a submissao do formulario de pagamento.
      * Permitimos que o _super execute para que o Odoo lide com o bloqueio da UI inicial
      * e a passagem de argumentos para o backend.
      */
@@ -107,11 +104,10 @@ paymentForm.include({
         const providerCode = checkedRadio ? checkedRadio.dataset.providerCode : null;
 
         if (providerCode === 'ifthenpay') {
-            console.log("Ifthenpay: Iniciando submissão para Ifthenpay. Permitindo bloqueio temporário da UI do Odoo.");
-            // Permitimos que o _super execute, ele irá bloquear a UI e chamar _initiatePaymentFlow
+            console.log("ifthenpay: Iniciando submissao para ifthenpay. Permitindo bloqueio temporario da UI do Odoo.");
             return this._super(...arguments); 
         } else {
-            // Para outros provedores, permite que o método pai _submitForm execute normalmente.
+            // Para outros provedores, permite que o metodo pai _submitForm execute normalmente.
             return this._super(...arguments);
         }
     },
@@ -130,7 +126,7 @@ paymentForm.include({
         if (!this._ifthenpayModal || !this._ifthenpayIframe || !this._ifthenpayLoadingModal) {
             const errorMessage = _t("An internal error has occurred: the ifthenpay payment modal has not loaded correctly on the page.");
             this._displayErrorDialog(_t("Configuration Error"), errorMessage);
-            // Em caso de erro crítico, reabilita o botão e a UI do Odoo.
+            // Em caso de erro critico, reabilita o botao e a UI do Odoo.
             this._enableButton(true); 
             return;
         }
@@ -143,8 +139,8 @@ paymentForm.include({
         try {
             this._currentIfthenpayTxRef = processingValues.reference;
 
-            // Aqui, a UI do Odoo ainda estará bloqueada pelo _submitForm.
-            // O desbloqueio acontecerá no listener do iframe 'load' ou no fechamento do modal.
+            // Aqui, a UI do Odoo ainda estara bloqueada pelo _submitForm.
+            // O desbloqueio acontecera no listener do iframe 'load' ou no fechamento do modal.
             const response = await rpc('/payment/ifthenpay/submit_payment', {
                 provider_id: this.paymentContext.providerId,
                 tx_reference: this._currentIfthenpayTxRef,
@@ -156,28 +152,27 @@ paymentForm.include({
             }
 
             if (response.redirect_url) {
-                console.log("Ifthenpay: URL de Redirecionamento obtida:", response.redirect_url);
+                console.log("ifthenpay: URL de Redirecionamento obtida:", response.redirect_url);
                 this._ifthenpayIframe.src = response.redirect_url;
-                // O listener do iframe 'load' agora cuidará do desbloqueio da UI do Odoo.
+                // O listener do iframe 'load' agora cuidara do desbloqueio da UI do Odoo.
             } else if (response.status) {
-                // Se o backend retornar um status (para pagamentos diretos como MBWAY, Multibanco sem iframe)
                 this._ifthenpayModal.modal('hide');
                 if (response.status === 'pending' || response.status === 'success') {
                     window.location.href = '/shop/payment/validate';
                 } else {
                     this._displayErrorDialog(_t("Payment Failed"), response.message || _t("Unknown payment status."));
-                    this._enableButton(true); // Garante que a UI seja desbloqueada após o erro.
+                    this._enableButton(true); // Garante que a UI seja desbloqueada apos o erro.
                 }
-                this._currentIfthenpayTxRef = null; // Limpa a referência se o modal fechar aqui
+                this._currentIfthenpayTxRef = null; // Limpa a referencia se o modal fechar aqui
             } else {
-                throw new Error("Resposta inesperada do servidor Ifthenpay. Nenhuma redirect_url ou status válido.");
+                throw new Error("Resposta inesperada do servidor ifthenpay. Nenhuma redirect_url ou status valido.");
             }
 
         } catch (error) {
-            console.error("Ifthenpay: Erro ao processar o pagamento:", error);
+            console.error("ifthenpay: Erro ao processar o pagamento:", error);
             this._ifthenpayModal.modal('hide'); // Esconde o modal em caso de erro
-            this._displayErrorDialog(_t("Payment Failed"), error?.data?.message || error.message || _t("An error occurred while processing the payment with Ifthenpay."));
-            this._enableButton(true); // Garante que a UI seja desbloqueada após o erro.
+            this._displayErrorDialog(_t("Payment Failed"), error?.data?.message || error.message || _t("An error occurred while processing the payment with ifthenpay."));
+            this._enableButton(true); // Garante que a UI seja desbloqueada apos o erro.
             this._currentIfthenpayTxRef = null;
         }
     },

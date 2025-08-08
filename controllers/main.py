@@ -17,8 +17,8 @@ class IfthenpayController(http.Controller):
         provider = request.env['payment.provider'].sudo().browse(int(provider_id))
 
         if not provider or provider.code != 'ifthenpay':
-            _logger.error("ifthenpay: Provedor de pagamento inválido ou não IfThenPay: %s", provider_id)
-            return {'error': 'Provedor de pagamento inválido.'}
+            _logger.error("ifthenpay: Provedor de pagamento invalido ou nao ifthenpay: %s", provider_id)
+            return {'error': 'Provedor de pagamento invalido.'}
 
         tx_reference = extra_data.get('reference') if extra_data else tx_reference
         method_code = extra_data.get('method') if extra_data else method_code
@@ -29,8 +29,8 @@ class IfthenpayController(http.Controller):
         ], limit=1)
 
         if not tx:
-            _logger.error("ifthenpay: Transação não encontrada para referência %s", tx_reference)
-            return {'error': 'Transação não encontrada.'}
+            _logger.error("ifthenpay: Transacao nao encontrada para referencia %s", tx_reference)
+            return {'error': 'Transacao nao encontrada.'}
 
         if method_code == 'ifthenpay' or not method_code:
             _logger.info("ifthenpay: Iniciando fluxo de checkout externo para tx %s", tx_reference)
@@ -39,19 +39,18 @@ class IfthenpayController(http.Controller):
                 redirect_url = api_response.get('payment_url')
 
                 if not redirect_url:
-                    raise Exception("URL de pagamento não retornada pela ifthenpay.")
+                    raise Exception("URL de pagamento nao retornada pela ifthenpay.")
 
                 return {'redirect_url': redirect_url}
             except Exception as e:
                 _logger.exception("ifthenpay: Erro ao obter URL de pagamento externo para tx %s: %s", tx_reference, e)
                 return {'error': str(e)}
         else:
-            _logger.warning("ifthenpay: Método de pagamento não suportado: %s", method_code)
-            return {'error': 'Método de pagamento não suportado.'}
+            _logger.warning("ifthenpay: Metodo de pagamento nao suportado: %s", method_code)
+            return {'error': 'Metodo de pagamento nao suportado.'}
     
     @http.route('/payment/ifthenpay/get_payment_methods_icons', type='json', auth='public', website=True)
     def ifthenpay_get_payment_methods_icons(self):
-        _logger.warning("ENTRANDO ----- ifthenpay_get_payment_methods_icons:")
         provider = request.env['payment.provider'].sudo().search([('code', '=', 'ifthenpay')], limit=1)
 
         if not provider or not provider.ifthenpay_api_key:
@@ -66,7 +65,6 @@ class IfthenpayController(http.Controller):
         url = f'https://api.ifthenpay.com/gateway/methods/available'
 
         accounts = integration.get('accountKeys')
-        _logger.warning("ACCOUNTS %s", accounts)
 
         cleaned_lines = []
         for part in accounts.split(";"):
@@ -96,18 +94,17 @@ class IfthenpayController(http.Controller):
         except json.JSONDecodeError:
             return {'error': 'Invalid JSON response from ifthenpay API.'}
 
-    # NOVA ROTA: Para a ifthenpay enviar o status de volta para o Odoo (Webhook / Notificação)
+    # NOVA ROTA: Para a ifthenpay enviar o status de volta para o Odoo (Webhook / Notificacao)
     @http.route('/payment/ifthenpay/s2s_callback', type='http', auth='public', website=True, csrf=False)
     def ifthenpay_s2s_callback(self, **get_params):
         _logger.info("ifthenpay_s2s_callback recebido (dados): %s", get_params)
 
         try:
-            # O get_params contem reference amount apk
             request.env['payment.transaction'].sudo()._handle_notification_data('ifthenpay', get_params)
             return "OK"
 
         except Exception as e:
-            _logger.exception("ifthenpay_s2s_callback: Erro ao processar notificação de pagamento: %s", e)
+            _logger.exception("ifthenpay_s2s_callback: Erro ao processar notificacao de pagamento: %s", e)
             raise BadRequest("Error: Internal server error")
 
     @http.route('/payment/ifthenpay/check_transaction_status', type='json', auth='public', website=True, csrf=False)
@@ -116,7 +113,7 @@ class IfthenpayController(http.Controller):
         tx = request.env['payment.transaction'].sudo().search([('reference', '=', tx_reference)], limit=1)
         
         if not tx:
-            _logger.warning("ifthenpay_check_transaction_status: Transação Odoo não encontrada para referência %s.", tx_reference)
+            _logger.warning("ifthenpay_check_transaction_status: Transacao Odoo nao encontrada para referencia %s.", tx_reference)
             return {'status': 'error', 'message': 'Transaction not found.'}
 
         if tx.state == 'done':
@@ -128,7 +125,7 @@ class IfthenpayController(http.Controller):
         elif tx.state == 'error':
             return {'status': 'error', 'message': 'Erro no pagamento.'}
         else: # draft, authorized, etc. - assume que não foi concluído ainda
-            return {'status': 'processing', 'message': 'Aguardando confirmação do pagamento.'}
+            return {'status': 'processing', 'message': 'Aguardando confirmacao do pagamento.'}
 
     @http.route('/payment/ifthenpay/iframe_callback', type='http', auth='public', website=True, csrf=False)
     def ifthenpay_iframe_callback(self, **get_params):
@@ -151,7 +148,7 @@ class IfthenpayController(http.Controller):
         ], limit=1)
 
         if not tx:
-            _logger.error("ifthenpay_iframe_callback: Transação Odoo ou token inválido para referência %s.", odoo_tx_reference)
+            _logger.error("ifthenpay_iframe_callback: Transação Odoo ou token invalido para referencia %s.", odoo_tx_reference)
             return request.render(
                 'payment_ifthenpay.ifthenpay_iframe_error_template', 
                 {'message': _('Invalid or expired transaction.'), 'title': _('An error occurred while processing the payment:')}
@@ -159,14 +156,14 @@ class IfthenpayController(http.Controller):
 
         provider = tx.provider_id
         if not provider:
-            _logger.error("ifthenpay_iframe_callback: Provedor de pagamento não encontrado para a transação %s.", tx.reference)
+            _logger.error("ifthenpay_iframe_callback: Provedor de pagamento nao encontrado para a transacao %s.", tx.reference)
             return request.render(
                 'payment_ifthenpay.ifthenpay_iframe_error_template', 
                 {'message': _('Payment provider configuration error.'), 'title': _('An error occurred while processing the payment:')}
             )
         
         if return_status == 'error':
-            _logger.warning("ifthenpay: Redirecionamento de ERRO recebido para transação %s.", tx.reference)
+            _logger.warning("ifthenpay: Redirecionamento de ERRO recebido para transacao %s.", tx.reference)
             if tx.state not in ('cancel', 'error'): # Evita sobrescrever um estado final de 'cancel' ou 'error'
                 tx._set_error(state_message=_('An error occurred while trying to process the payment with ifthenpay. Please try again.'))
             tx._invalidate_cache()

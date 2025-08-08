@@ -4,7 +4,7 @@ import requests
 from odoo import models, fields, api, _
 from odoo.exceptions import UserError
 from odoo.http import request
-from urllib.parse import urlencode
+from urllib.parse import quote
 import logging
 
 from odoo.addons.payment_ifthenpay import const
@@ -19,7 +19,7 @@ class PaymentProvider(models.Model):
     )
     
     # --- Campos de Configuração da ifthenpay ---
-    ifthenpay_api_key = fields.Char(_("API Key (backoffice)"), required_if_provider='ifthenpay', groups='base.group_user', help=_("The TokenApi provided by ifthenpay."))
+    ifthenpay_api_key = fields.Char(_("ClientID (backoffice)"), required_if_provider='ifthenpay', groups='base.group_user', help=_("The ClientID provided by ifthenpay."))
     ifthenpay_email_account = fields.Char(
         string=_("E-mail"),
         help=_("The public business email solely used to identify the account with ifthenpay"),
@@ -29,6 +29,7 @@ class PaymentProvider(models.Model):
     ifthenpay_store_name = fields.Char(_("Store name"), groups='base.group_user', help=_("Name of your store."), readonly=True)
     ifthenpay_gateway_key = fields.Char(_("Gateway Key"), groups='base.group_user', required_if_provider='ifthenpay', help=_("Gateway Key provided by ifthenpay."), readonly=True)
     ifthenpay_expiry_days = fields.Char(_("Deadline"), groups='base.group_user', help=_("Payment link expiration period."), readonly=True)
+    url_base = fields.Char(_("URL"), groups='base.group_user', help=_("Store URL."), readonly=True)
     ifthenpay_accounts_info = fields.Text(
         string=_("Accounts"),
         help=_("List of accounts or data provided by ifthenpay. One per line."),
@@ -46,20 +47,21 @@ class PaymentProvider(models.Model):
         
         # 'transaction_values' é o dicionário de dados da transação do Odoo
         ifthenpay_tx_values = {
-            'chave': self.ifthenpay_api_key, 
-            'referencia': transaction_values['reference'], 
-            'valor': "%.2f" % transaction_values['amount'], 
-            'moeda': transaction_values['currency'].name, 
+            'chave': self.ifthenpay_api_key,
+            'referencia': transaction_values['reference'],
+            'valor': "%.2f" % transaction_values['amount'],
+            'moeda': transaction_values['currency'].name,
             'store_name': self.ifthenpay_store_name,
-            'email_account': self.ifthenpay_email_account, 
-            'url_back': '%s/payment/ifthenpay/return' % base_url, 
-            'url_cancel': '%s/payment/ifthenpay/cancel' % base_url, 
-            'ifthenpay_gateway_key': self.ifthenpay_gateway_key, 
-            'ifthenpay_expiry_days': self.ifthenpay_expiry_days, 
-            # Adicionar outros parâmetros específicos 
+            'email_account': self.ifthenpay_email_account,
+            'url_back': '%s/payment/ifthenpay/return' % base_url,
+            'url_cancel': '%s/payment/ifthenpay/cancel' % base_url,
+            'ifthenpay_gateway_key': self.ifthenpay_gateway_key,
+            'ifthenpay_expiry_days': self.ifthenpay_expiry_days,
+            'url_base': self.url_base, 
+            # Adicionar outros parâmetros específicos
         }
         
-        _logger.info("ifthenpay: Gerando valores para transação: %s", ifthenpay_tx_values)
+        _logger.info("ifthenpay: Gerando valores para transacao: %s", ifthenpay_tx_values)
         return ifthenpay_tx_values
 
     def _get_form_action_url(self, transaction_values): 
@@ -67,7 +69,7 @@ class PaymentProvider(models.Model):
         return self._get_api_url() + '/createPayment'
 
     def _ifthenpay_verify_signature(self, incoming_values):
-        _logger.info("ifthenpay: Verificação de assinatura (a ser implementada). Dados: %s", incoming_values)
+        _logger.info("ifthenpay: Verificacao de assinatura (a ser implementada). Dados: %s", incoming_values)
         return True
 
     def _get_supported_currencies(self):
@@ -116,8 +118,8 @@ class PaymentProvider(models.Model):
         api_url = self._get_api_url() + result.get('gatewayKey')
         if api_url is None:
             raise UserError(_("Unable to connect to ifthenpay because the provider is disabled."))
-        
-        base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
+
+        base_url = result.get('storeUrl')
         all_fields_data = transaction.read([])
         _logger.info("transaction: %s  ", all_fields_data)
 
@@ -130,28 +132,22 @@ class PaymentProvider(models.Model):
                 # Tenta converter a string JSON para um objeto Python
                 selected_data_object = json.loads(selected_data_json_string)
                 
-                # Verifica se é um dicionário e se 'defalutPaymentMethod' existe nele
-                if isinstance(selected_data_object, dict) and 'defalutPaymentMethod' in selected_data_object:
-                    payment_method = selected_data_object['defalutPaymentMethod']
+                # Verifica se é um dicionário e se 'defaultPaymentMethod' existe nele
+                if isinstance(selected_data_object, dict) and 'defaultPaymentMethod' in selected_data_object:
+                    payment_method = selected_data_object['defaultPaymentMethod']
                     _logger.info("ifthenpay: defaultPaymentMethod encontrado: %s", payment_method)
                 else:
-                    _logger.warning("ifthenpay: 'paymentData' é JSON, mas 'defalutPaymentMethod' não encontrado ou não é um dicionário.")
+                    _logger.warning("ifthenpay: 'paymentData' eh JSON, mas 'defaultPaymentMethod' nao encontrado ou nao eh um dicionario.")
             except json.JSONDecodeError:
-                # selected_data_json_string não é um JSON válido
-                _logger.warning("ifthenpay: 'paymentData' não é uma string JSON válida.")
+                _logger.warning("ifthenpay: 'paymentData' nao eh uma string JSON valida.")
             except Exception as e:
                 _logger.error("ifthenpay: Erro inesperado ao processar 'paymentData': %s", e)
         else:
-            _logger.warning("ifthenpay: 'paymentData' não é uma string.")
+            _logger.warning("ifthenpay: 'paymentData' nao eh uma string.")
 
-        cancel_url = base_url + '/payment/ifthenpay/iframe_callback?' + \
-                     urlencode({'reference': transaction.reference, 'amount': transaction.amount, 'status': 'cancel'})
-        
-        error_url = base_url + '/payment/ifthenpay/iframe_callback?' + \
-                     urlencode({'reference': transaction.reference, 'amount': transaction.amount, 'status': 'error'})
-        
-        success_url = base_url + '/payment/ifthenpay/iframe_callback?' + \
-                     urlencode({'reference': transaction.reference, 'amount': transaction.amount, 'status': 'success'})
+        cancel_url = quote(f"{base_url}/payment/ifthenpay/iframe_callback?reference={transaction.reference}&amount={transaction.amount}&status=cancel")
+        error_url = quote(f"{base_url}/payment/ifthenpay/iframe_callback?reference={transaction.reference}&amount={transaction.amount}&status=error")
+        success_url = quote(f"{base_url}/payment/ifthenpay/iframe_callback?reference={transaction.reference}&amount={transaction.amount}&status=success")
 
         ifthenpay_payload = {
             'id': transaction.reference,
@@ -186,7 +182,7 @@ class PaymentProvider(models.Model):
                 raise UserError(_("Failed to create ifthenpay payment: %s") % error_msg)
 
         except requests.exceptions.RequestException as e:
-            _logger.error("Erro de comunicação com a API ifthenpay: %s", e)
+            _logger.error("Erro de comunicacao com a API ifthenpay: %s", e)
             raise UserError(_("Unable to connect to ifthenpay. Please try again later."))
         except json.JSONDecodeError as e:
             _logger.error("Falha ao decodificar a resposta da API ifthenpay: %s", e)
@@ -194,7 +190,7 @@ class PaymentProvider(models.Model):
     
     def _get_payment_flow(self):
         if self.code == 'ifthenpay':
-            _logger.info(">>>>> Usando fluxo INLINE para IfThenPay (ID: %s)", self.id)
+            _logger.info(">>>>> Usando fluxo INLINE para ifthenpay (ID: %s)", self.id)
             return 'direct'
         return super()._get_payment_flow()
     
@@ -233,15 +229,12 @@ class PaymentProvider(models.Model):
             self.ifthenpay_gateway_key = ''
             self.ifthenpay_expiry_days = ''
             self.ifthenpay_accounts_info = ''
+            self.url_base = ''
             return
 
         try:
-            _logger.info("====== INICIOU BUSCA API")
             result = self._get_integration_api(self.ifthenpay_api_key)
-            _logger.info("====== RETORNO ANTES DO IF: %s", result)
             if result is None:
-                
-                _logger.info("====== ENTROU NO IF RETORNO NONE")
                 raise UserError(_("Unable to connect to ifthenpay because the provider is disabled."))
             
             accounts = result.get('accountKeys')
@@ -252,18 +245,19 @@ class PaymentProvider(models.Model):
 
             self.ifthenpay_accounts_info = "\n".join(cleaned_lines)
 
+            base_url = result.get('storeUrl')
             self.ifthenpay_store_name = result.get('storeName')
             self.ifthenpay_email_account = result.get('email')
             self.ifthenpay_gateway_key = result.get('gatewayKey')
             self.ifthenpay_expiry_days = result.get('expiryDays')
+            self.url_base = base_url
 
 
             callback = '/payment/ifthenpay/s2s_callback?amount=[AMOUNT]&reference=[ORDER_ID]&apk=[ANTI_PHISHING_KEY]'
-            base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url') + callback
             payload = {
                 'apKey': result.get('tokenApi'),
                 'chave': result.get('gatewayKey'),
-                'urlCb': base_url
+                'urlCb': base_url + callback
             }
             response = requests.post('https://api.ifthenpay.com/endpoint/callback/activation/?cms=odoo', json=payload, timeout=30)
             response.raise_for_status()

@@ -59,7 +59,7 @@ class PaymentTransaction(models.Model):
         token = notification_data.get('apk')
         
         if token != self.provider_id.sudo().ifthenpay_api_key:
-                _logger.warning("ifthenpay_s2s_callback: Token recebido (%s) NÃO CORRESPONDE à API Key configurada (%s) para a transação %s. POSSÍVEL TENTATIVA DE FRAUDE.",
+                _logger.warning("ifthenpay_s2s_callback: Token recebido (%s) NAO CORRESPONDE a API Key configurada (%s) para a transacao %s. POSSIVEL TENTATIVA DE FRAUDE.",
                             token, self.provider_id.sudo().ifthenpay_api_key, self.reference)
                 self._set_error(_("Error: Invalid Token"))
                 return
@@ -72,7 +72,11 @@ class PaymentTransaction(models.Model):
 
         reference = notification_data.get('reference')
         self.provider_reference = f"ifthenpay_{reference}" 
-        
+
         self._set_done()
+
+        if 'inv' in reference.lower():
+            _logger.info("ifthenpay: Transaction invoice %s processed", self.reference)
+            self._create_payment()
 
         _logger.info("ifthenpay: Transaction %s processed. New state: %s", self.reference, self.state)
