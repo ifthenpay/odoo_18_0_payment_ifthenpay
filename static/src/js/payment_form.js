@@ -38,7 +38,6 @@ paymentForm.include({
         // Adiciona um listener para quando o modal for completamente escondido
         // Usamos 'this' diretamente, pois o contexto é mantido por jQuery/Bootstrap para eventos.
         this._ifthenpayModal.on('hidden.bs.modal', async () => {
-            console.log("ifthenpay: Modal fechado.");
             this._ifthenpayIframe.src = ''; // Limpa a URL do iframe
             this._ifthenpayLoadingModal.classList.add('d-none'); // Esconde o spinner
             this._ifthenpayIframe.style.display = 'none'; // Esconde o iframe
@@ -46,14 +45,12 @@ paymentForm.include({
             this._enableButton(true); 
             // verificar o status do pagamento apos o modal ser fechado (manual ou via JS)
             if (this._currentIfthenpayTxRef) {
-                console.log(`ifthenpay: Verificando status da transacao ${this._currentIfthenpayTxRef} apos fechamento do modal.`);
                 try {
                     const statusCheckResponse = await rpc('/payment/ifthenpay/check_transaction_status', {
                         tx_reference: this._currentIfthenpayTxRef,
                     });
 
                     if (statusCheckResponse && (statusCheckResponse.status === 'success' || statusCheckResponse.status === 'pending')) {
-                        console.log(`ifthenpay: Transação ${this._currentIfthenpayTxRef} confirmada como ${statusCheckResponse.status}. Redirecionando...`);
                         window.location.href = '/shop/payment/validate';
                     } else if (statusCheckResponse && statusCheckResponse.status === 'error') {
                         this._displayErrorDialog(_t("Payment Failed"), _t("The payment was not completed successfully."));
@@ -73,7 +70,6 @@ paymentForm.include({
         // Usamos uma arrow function para manter o contexto 'this'
         this._ifthenpayIframe.addEventListener('load', () => {
             this._ifthenpayLoadingModal.classList.add('d-none');
-            console.log("ifthenpay: iframe carregado.");
             this._ifthenpayIframe.style.display = 'block';
 
             // Desbloqueia a UI do Odoo *APOS* o iframe carregar e o modal aparecer.
@@ -104,7 +100,6 @@ paymentForm.include({
         const providerCode = checkedRadio ? checkedRadio.dataset.providerCode : null;
 
         if (providerCode === 'ifthenpay') {
-            console.log("ifthenpay: Iniciando submissao para ifthenpay. Permitindo bloqueio temporario da UI do Odoo.");
             return this._super(...arguments); 
         } else {
             // Para outros provedores, permite que o metodo pai _submitForm execute normalmente.
@@ -117,8 +112,6 @@ paymentForm.include({
      * Processa o fluxo de redirecionamento para ifthenpay.
      */
     _processRedirectFlow: async function (providerCode, paymentOptionId, paymentMethodCode, processingValues) {
-        console.log("ifthenpay: _processRedirectFlow CHAMADO para:", providerCode);
-
         if (providerCode !== 'ifthenpay') {
             return this._super(...arguments);
         }
@@ -152,7 +145,6 @@ paymentForm.include({
             }
 
             if (response.redirect_url) {
-                console.log("ifthenpay: URL de Redirecionamento obtida:", response.redirect_url);
                 this._ifthenpayIframe.src = response.redirect_url;
                 // O listener do iframe 'load' agora cuidara do desbloqueio da UI do Odoo.
             } else if (response.status) {
@@ -181,26 +173,43 @@ paymentForm.include({
      * @private
      */
     _onIframeMessage: function (event) {
-        if (event.data && typeof event.data === 'object' && event.data.type === 'ifthenpay_payment_status') {
-            const status = event.data.status;
-            const message = event.data.message;
+        if (event.data && typeof event.data === 'object') {
+            if (event.data.type === 'ifthenpay_loading_ready') {
+                const params = event.data.params;
+                const queryString = new URLSearchParams(params).toString();
+                
+                // Chama a rota de backend que fará a lógica de espera e processamento
+                // Esta chamada vai 'congelar' a interface, mas a tela de loading já estará visível
+                fetch(`/payment/ifthenpay/iframe_callback?${queryString}`)
+                .then(result => {
+                    this._ifthenpayModal.modal('hide');
+                }).catch(error => {
+                    this._ifthenpayModal.modal('hide');
+                    this._displayErrorDialog(_t("Payment Failed"), _t("The payment with ifthenpay failed. Please try again."));
+                    this._currentIfthenpayTxRef = null;
+                });
 
-            if (status === 'success') {
-                this._ifthenpayModal.modal('hide');
-                window.location.href = '/shop/payment/validate';
-                this._currentIfthenpayTxRef = null;
-            } else if (status === 'failed') {
-                this._ifthenpayModal.modal('hide');
-                this._displayErrorDialog(_t("Payment Failed"), message || _t("The payment with ifthenpay failed. Please try again."));
-                this._currentIfthenpayTxRef = null;
-            } else if (status === 'pending') {
-                this._ifthenpayModal.modal('hide');
-                window.location.href = '/shop/payment/validate';
-                this._currentIfthenpayTxRef = null;
-            } else if (status === 'closed') {
-                this._ifthenpayModal.modal('hide');
-                this._displayErrorDialog(_t("Payment Cancelled"), message || _t("The payment has been canceled. Please try again."));
-                this._currentIfthenpayTxRef = null;
+            } else if (event.data.type === 'ifthenpay_payment_status') {
+                const status = event.data.status;
+                const message = event.data.message;
+
+                if (status === 'success') {
+                    this._ifthenpayModal.modal('hide');
+                    window.location.href = '/shop/payment/validate';
+                    this._currentIfthenpayTxRef = null;
+                } else if (status === 'failed') {
+                    this._ifthenpayModal.modal('hide');
+                    this._displayErrorDialog(_t("Payment Failed"), message || _t("The payment with ifthenpay failed. Please try again."));
+                    this._currentIfthenpayTxRef = null;
+                } else if (status === 'pending') {
+                    this._ifthenpayModal.modal('hide');
+                    window.location.href = '/shop/payment/validate';
+                    this._currentIfthenpayTxRef = null;
+                } else if (status === 'closed') {
+                    this._ifthenpayModal.modal('hide');
+                    this._displayErrorDialog(_t("Payment Cancelled"), message || _t("The payment has been canceled. Please try again."));
+                    this._currentIfthenpayTxRef = null;
+                }
             }
         }
     },

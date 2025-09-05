@@ -91,7 +91,6 @@ const IfThenPayCheckoutWidget = publicWidget.Widget.extend({
      * @param {jQuery} targetContainer O elemento jQuery onde os icones devem ser injetados.
      */
     _fetchAndDisplayIcons: async function(targetContainer) {
-        console.log('tentando buscar imgs: _fetchAndDisplayIcons')
         if (!targetContainer || targetContainer.length === 0) {
             console.error("Nenhum container alvo valido fornecido para _fetchAndDisplayIcons.");
             return;
@@ -101,7 +100,6 @@ const IfThenPayCheckoutWidget = publicWidget.Widget.extend({
             const result = await rpc('/payment/ifthenpay/get_payment_methods_icons', { 
                 params: {},
             });
-            console.log('retorno de result: ' + result)
 
             if (result.error) {
                 console.error('ifthenpay API Error from Backend:', result.error);
@@ -113,7 +111,6 @@ const IfThenPayCheckoutWidget = publicWidget.Widget.extend({
             }
 
             const data = result.data;
-            console.log("RPC Result:", result);
 
             if (!Array.isArray(data) || data.length === 0) {
                 console.warn('ifthenpay: Resposta da API invalida do backend ou sem dados para icones.');

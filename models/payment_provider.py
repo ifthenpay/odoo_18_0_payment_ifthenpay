@@ -60,8 +60,7 @@ class PaymentProvider(models.Model):
             'url_base': self.url_base, 
             # Adicionar outros parâmetros específicos
         }
-        
-        _logger.info("ifthenpay: Gerando valores para transacao: %s", ifthenpay_tx_values)
+
         return ifthenpay_tx_values
 
     def _get_form_action_url(self, transaction_values): 
@@ -69,7 +68,6 @@ class PaymentProvider(models.Model):
         return self._get_api_url() + '/createPayment'
 
     def _ifthenpay_verify_signature(self, incoming_values):
-        _logger.info("ifthenpay: Verificacao de assinatura (a ser implementada). Dados: %s", incoming_values)
         return True
 
     def _get_supported_currencies(self):
@@ -121,7 +119,6 @@ class PaymentProvider(models.Model):
 
         base_url = result.get('storeUrl')
         all_fields_data = transaction.read([])
-        _logger.info("transaction: %s  ", all_fields_data)
 
         selected_data_json_string = result.get('paymentData')
         payment_method = None
@@ -135,7 +132,6 @@ class PaymentProvider(models.Model):
                 # Verifica se é um dicionário e se 'defaultPaymentMethod' existe nele
                 if isinstance(selected_data_object, dict) and 'defaultPaymentMethod' in selected_data_object:
                     payment_method = selected_data_object['defaultPaymentMethod']
-                    _logger.info("ifthenpay: defaultPaymentMethod encontrado: %s", payment_method)
                 else:
                     _logger.warning("ifthenpay: 'paymentData' eh JSON, mas 'defaultPaymentMethod' nao encontrado ou nao eh um dicionario.")
             except json.JSONDecodeError:
@@ -145,9 +141,9 @@ class PaymentProvider(models.Model):
         else:
             _logger.warning("ifthenpay: 'paymentData' nao eh uma string.")
 
-        cancel_url = quote(f"{base_url}/payment/ifthenpay/iframe_callback?reference={transaction.reference}&amount={transaction.amount}&status=cancel")
-        error_url = quote(f"{base_url}/payment/ifthenpay/iframe_callback?reference={transaction.reference}&amount={transaction.amount}&status=error")
-        success_url = quote(f"{base_url}/payment/ifthenpay/iframe_callback?reference={transaction.reference}&amount={transaction.amount}&status=success")
+        cancel_url = quote(f"{base_url}/payment/ifthenpay/iframe_redirect?reference={transaction.reference}&amount={transaction.amount}&status=cancel")
+        error_url = quote(f"{base_url}/payment/ifthenpay/iframe_redirect?reference={transaction.reference}&amount={transaction.amount}&status=error")
+        success_url = quote(f"{base_url}/payment/ifthenpay/iframe_redirect?reference={transaction.reference}&amount={transaction.amount}&status=success&txid=[TRANSACTIONID]")
 
         ifthenpay_payload = {
             'id': transaction.reference,
@@ -166,13 +162,10 @@ class PaymentProvider(models.Model):
         if payment_method:
             ifthenpay_payload['selected_method'] = payment_method
 
-        _logger.info("ifthenpay: Chamando API para criar pagamento com payload: %s", ifthenpay_payload)
-
         try:
             response = requests.post(api_url, json=ifthenpay_payload, timeout=30)
             response.raise_for_status() # Lança um HTTPError para respostas de erro (4xx ou 5xx)
             api_response = response.json()
-            _logger.info("Resposta bruta da API ifthenpay: %s", api_response)
 
             if response.status_code == 200 and api_response.get('PinpayUrl'):
                 return {'payment_url': api_response['PinpayUrl'], 'raw_response': api_response}
@@ -262,7 +255,7 @@ class PaymentProvider(models.Model):
             response = requests.post('https://api.ifthenpay.com/endpoint/callback/activation/?cms=odoo', json=payload, timeout=30)
             response.raise_for_status()
             api_response = response.json()
-            _logger.info("Resposta bruta da API ifthenpay: %s", api_response)
+            _logger.info("ifthenpay: active callback %s", api_response)
 
         except Exception as e:
             _logger.error("Erro ao buscar resposta da API ifthenpay: %s", e)

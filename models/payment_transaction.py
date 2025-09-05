@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import requests
+import time
 import logging
 from odoo import models, fields, _
 from odoo.exceptions import UserError
@@ -36,8 +38,8 @@ class PaymentTransaction(models.Model):
         ], limit=1)
 
         if not tx:
-            _logger.error("ifthenpay: Transaction not found for reference %s and amount %s. Data: %s", 
-                          reference, amount, notification_data)
+            _logger.error("ifthenpay: Transaction not found for reference %s and amount %s.", 
+                          reference, amount)
             raise UserError(_("Payment transaction not found or invalid."))
 
         return tx
@@ -53,20 +55,17 @@ class PaymentTransaction(models.Model):
         if self.provider_code != 'ifthenpay':
             return
 
-        _logger.info("ifthenpay: Processing notification data for transaction %s: %s", self.reference, notification_data)
-
         ifthenpay_payment_amount = float(notification_data.get('amount', 0.0))
         token = notification_data.get('apk')
         
         if token != self.provider_id.sudo().ifthenpay_api_key:
-                _logger.warning("ifthenpay_s2s_callback: Token recebido (%s) NAO CORRESPONDE a API Key configurada (%s) para a transacao %s. POSSIVEL TENTATIVA DE FRAUDE.",
-                            token, self.provider_id.sudo().ifthenpay_api_key, self.reference)
+                _logger.warning("ifthenpay_s2s_callback: Token recebido (%s) NAO CORRESPONDE a API Key configurada para a transacao %s. POSSIVEL TENTATIVA DE FRAUDE.",
+                            token, self.reference)
                 self._set_error(_("Error: Invalid Token"))
                 return
 
         if abs(ifthenpay_payment_amount - self.amount) > 0.001:
-            _logger.warning("ifthenpay: Amount mismatch for transaction %s. Notified: %s, Expected: %s",
-                            self.reference, ifthenpay_payment_amount, self.amount)
+            _logger.warning("ifthenpay: Amount mismatch for transaction %s.", self.reference)
             self._set_error(_("Amount mismatch from ifthenpay notification."))
             return
 
@@ -80,3 +79,29 @@ class PaymentTransaction(models.Model):
             self._create_payment()
 
         _logger.info("ifthenpay: Transaction %s processed. New state: %s", self.reference, self.state)
+
+    def _ifthenpay_poll_status(self, tx_id_ifthen, max_attempts=10, wait_seconds=1):
+        url = f'https://api.ifthenpay.com/gateway/transaction/status/get?transactionId={tx_id_ifthen}'
+
+        attempts = 0
+        while attempts < max_attempts:
+            try:
+                response = requests.get(url, timeout=30)
+
+                if response.status_code == 404:
+                    _logger.info("Tentativa %s/%s: transacao ainda nao encontrada (404).", attempts + 1, max_attempts)
+                    attempts += 1
+                    time.sleep(wait_seconds)
+                    continue
+
+                if response.status_code == 200:
+                    return response.json()
+
+                _logger.warning("Resposta inesperada %s para transacao %s", response.status_code, tx_id_ifthen)
+                return None
+
+            except requests.exceptions.RequestException as e:
+                _logger.error("Erro na requisicao ao ifthenpay: %s", e)
+                return None
+
+        return None

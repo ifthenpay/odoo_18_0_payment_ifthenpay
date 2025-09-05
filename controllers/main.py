@@ -33,7 +33,6 @@ class IfthenpayController(http.Controller):
             return {'error': 'Transacao nao encontrada.'}
 
         if method_code == 'ifthenpay' or not method_code:
-            _logger.info("ifthenpay: Iniciando fluxo de checkout externo para tx %s", tx_reference)
             try:
                 api_response = provider._ifthenpay_api_create_payment_pinpay(tx)
                 redirect_url = api_response.get('payment_url')
@@ -97,8 +96,6 @@ class IfthenpayController(http.Controller):
     # NOVA ROTA: Para a ifthenpay enviar o status de volta para o Odoo (Webhook / Notificacao)
     @http.route('/payment/ifthenpay/s2s_callback', type='http', auth='public', website=True, csrf=False)
     def ifthenpay_s2s_callback(self, **get_params):
-        _logger.info("ifthenpay_s2s_callback recebido (dados): %s", get_params)
-
         try:
             request.env['payment.transaction'].sudo()._handle_notification_data('ifthenpay', get_params)
             return "OK"
@@ -109,7 +106,6 @@ class IfthenpayController(http.Controller):
 
     @http.route('/payment/ifthenpay/check_transaction_status', type='json', auth='public', website=True, csrf=False)
     def ifthenpay_check_transaction_status(self, tx_reference, **kwargs):
-        _logger.info("ifthenpay_check_transaction_status chamado para: %s", tx_reference)
         tx = request.env['payment.transaction'].sudo().search([('reference', '=', tx_reference)], limit=1)
         
         if not tx:
@@ -127,19 +123,19 @@ class IfthenpayController(http.Controller):
         else: # draft, authorized, etc. - assume que não foi concluído ainda
             return {'status': 'processing', 'message': 'Aguardando confirmacao do pagamento.'}
 
+    @http.route('/payment/ifthenpay/iframe_redirect', type='http', auth='public', website=True, csrf=False)
+    def ifthenpay_iframe_redirect(self, **get_params):
+        _logger.info("iframe_redirect recebido (dados): %s", get_params)
+        return request.render('payment_ifthenpay.ifthenpay_iframe_redirect_template', {'params': get_params})
+
+
     @http.route('/payment/ifthenpay/iframe_callback', type='http', auth='public', website=True, csrf=False)
     def ifthenpay_iframe_callback(self, **get_params):
-        _logger.info("ifthenpay_iframe_callback recebido (dados): %s", get_params)
-
         odoo_tx_reference = get_params.get('reference')
         odoo_amount = get_params.get('amount')
         return_status = get_params.get('status')
 
-        if return_status == 'cancel':
-            return request.render('payment_ifthenpay.ifthenpay_iframe_post_message_template', {
-                'payment_status': 'closed',
-                'message': _('The payment has been canceled or the window has been closed. You can try again.')
-            })
+        tx_id_ifthen = get_params.get('txid')
 
         tx = request.env['payment.transaction'].sudo().search([
             ('reference', '=', odoo_tx_reference),
@@ -148,7 +144,7 @@ class IfthenpayController(http.Controller):
         ], limit=1)
 
         if not tx:
-            _logger.error("ifthenpay_iframe_callback: Transação Odoo ou token invalido para referencia %s.", odoo_tx_reference)
+            _logger.error("ifthenpay_iframe_callback: Transacao Odoo ou token invalido para referencia %s.", odoo_tx_reference)
             return request.render(
                 'payment_ifthenpay.ifthenpay_iframe_error_template', 
                 {'message': _('Invalid or expired transaction.'), 'title': _('An error occurred while processing the payment:')}
@@ -162,18 +158,54 @@ class IfthenpayController(http.Controller):
                 {'message': _('Payment provider configuration error.'), 'title': _('An error occurred while processing the payment:')}
             )
         
+        # in the gateway, when clicking on complete, it falls into this route, 
+        # so the status goes to pending because it was not necessarily paid when clicking on 'complete', so it waits for the callback route
+        if return_status == 'cancel':
+            tx._set_pending(state_message=_('Payment initiated with ifthenpay, awaiting confirmation.'))
+            return request.render('payment_ifthenpay.ifthenpay_iframe_post_message_template', {
+                'payment_status': 'pending',
+                'message': _('Your payment is being processed and awaiting confirmation. Please wait.')
+            })
+
         if return_status == 'error':
             _logger.warning("ifthenpay: Redirecionamento de ERRO recebido para transacao %s.", tx.reference)
             if tx.state not in ('cancel', 'error'): # Evita sobrescrever um estado final de 'cancel' ou 'error'
                 tx._set_error(state_message=_('An error occurred while trying to process the payment with ifthenpay. Please try again.'))
-            tx._invalidate_cache()
-            return request.render('payment_ifthenpay.ifthenpay_iframe_post_message_template', {
-                'payment_status': 'failed',
-                'message': tx.state_message or _("There was an error in the payment."),
-            })
+            return request.render(
+                'payment_ifthenpay.ifthenpay_iframe_post_message_template', 
+                {'message': _('Payment provider configuration error.'), 'title': _('An error occurred while processing the payment:')}
+            )
 
         if tx.state == 'draft':
-            tx._set_pending(state_message=_('Payment initiated with ifthenpay, awaiting confirmation.'))
+            if tx_id_ifthen:
+                try:
+                    return_tx = tx._ifthenpay_poll_status(tx_id_ifthen)
+
+                    if return_tx and return_tx.get("PaymentMethod") in ("CCARD", "APPLE", "GOOGLE"):
+                        tx._set_done()
+                        return request.render('payment_ifthenpay.ifthenpay_iframe_post_message_template', {
+                            'payment_status': 'success',
+                            'message': 'Pagamento realizado com sucesso!',
+                        })
+                    else:
+                        tx._set_pending(state_message=_('Payment initiated with ifthenpay, awaiting confirmation.'))
+
+                except requests.exceptions.RequestException as e:
+                    _logger.error("Erro inesperado ao verificar o status da transacao %s: %s", tx_id_ifthen, e)
+                    tx._set_error(state_message=f'Ocorreu um erro inesperado: {e}')
+                    return request.render('payment_ifthenpay.ifthenpay_iframe_post_message_template', {
+                        'payment_status': 'failed',
+                        'message': _("There was an error in the payment."),
+                    })
+                except Exception as e:
+                    _logger.error("Erro inesperado ao verificar o status da transacao %s: %s", tx_id_ifthen, e)
+                    tx._set_error(state_message=f'Ocorreu um erro inesperado: {e}')
+                    return request.render('payment_ifthenpay.ifthenpay_iframe_post_message_template', {
+                        'payment_status': 'failed',
+                        'message': _("There was an error in the payment."),
+                    })
+            else:
+                tx._set_pending(state_message=_('Payment initiated with ifthenpay, awaiting confirmation.'))
 
         payment_status = 'pending'
         message = 'Your payment is being processed and awaiting confirmation. Please wait.'
