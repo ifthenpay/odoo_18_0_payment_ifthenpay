@@ -20,13 +20,12 @@ jobs:
       # 2️⃣ Criar ZIP
       - name: 📦 Build ZIP
         run: |
-          rm -rf dist
-          mkdir -p dist
-          rsync -a --delete --exclude=".DS_Store" --exclude="Thumbs.db" ./ ./dist/payment_ifthenpay
-          cd dist
+          set -e
+          rm -rf payment_ifthenpay
+          mkdir payment_ifthenpay
+          rsync -a --exclude=".DS_Store" --exclude="Thumbs.db" --exclude="dist" ./ payment_ifthenpay/
           zip -r payment_ifthenpay.zip payment_ifthenpay
-          mv payment_ifthenpay.zip ../
-          cd ..
+          rm -rf payment_ifthenpay
 
       # 3️⃣ Criar/atualizar release no repo B
       - name: 🚀 Release ZIP to Repo odoo_ifthenpay
