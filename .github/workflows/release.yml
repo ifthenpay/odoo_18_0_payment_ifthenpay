@@ -20,11 +20,12 @@ jobs:
       # 2️⃣ Criar ZIP
       - name: 📦 Build ZIP
         run: |
-          set -e
-          rm -rf dist && mkdir -p dist
-          rsync -a --delete --exclude=".DS_Store" --exclude="Thumbs.db" ./ ./dist/payment_ifthenpay/
+          rm -rf dist
+          mkdir -p dist
+          rsync -a --delete --exclude=".DS_Store" --exclude="Thumbs.db" ./ ./dist/payment_ifthenpay
           cd dist
           zip -r payment_ifthenpay.zip payment_ifthenpay
+          mv payment_ifthenpay.zip ../
           cd ..
 
       # 3️⃣ Criar/atualizar release no repo B
