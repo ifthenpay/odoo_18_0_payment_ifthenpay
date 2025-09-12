@@ -30,7 +30,7 @@ jobs:
       - name: 🚀 Release ZIP to Repo odoo_ifthenpay
         uses: softprops/action-gh-release@v2
         with:
-          repository: YOUR_GITHUB_USERNAME/odoo_ifthenpay
+          repository: ifthenpay/odoo_ifthenpay
           tag_name: ${{ github.ref_name }}
           name: "Release ${{ github.ref_name }}"
           files: dist/payment_ifthenpay.zip
