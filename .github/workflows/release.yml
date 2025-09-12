@@ -2,8 +2,6 @@ name: Build & Release to Repo odoo_ifthenpay
 
 on:
   push:
-    branches:
-      - main
     tags:
       - "v*"  # só roda para tags que começam com "v", ex: v1.0.0
 
