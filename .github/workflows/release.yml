@@ -21,10 +21,11 @@ jobs:
       - name: 📦 Build ZIP
         run: |
           set -e
-          rm -rf dist && mkdir -p dist/payment_ifthenpay
+          rm -rf dist && mkdir -p dist
           rsync -a --delete --exclude=".DS_Store" --exclude="Thumbs.db" ./ ./dist/payment_ifthenpay/
           cd dist
           zip -r payment_ifthenpay.zip payment_ifthenpay
+          cd ..
 
       # 3️⃣ Criar/atualizar release no repo B
       - name: 🚀 Release ZIP to Repo odoo_ifthenpay
@@ -33,7 +34,7 @@ jobs:
           repository: ifthenpay/odoo_ifthenpay
           tag_name: ${{ github.ref_name }}
           name: "Release ${{ github.ref_name }}"
-          files: dist/payment_ifthenpay.zip
+          files: payment_ifthenpay.zip
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.REPO_ODOO_TOKEN }}
