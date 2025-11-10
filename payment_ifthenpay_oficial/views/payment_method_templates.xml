@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <template id="payment_ifthenpay_oficial_icons_container" inherit_id="payment.method_form">
+        <xpath expr="//div[@name='o_payment_inline_form']" position="inside">
+            <div t-if="pm_sudo.code == 'ifthenpay'"
+                 class="ifthenpay-dynamic-icons d-inline-block align-middle"
+                 style="margin-left: 10px; display: none;">
+                <p class="text-muted small mb-0" data-oe-translation="1">Loading payment methods...</p>
+            </div>
+        </xpath>
+    </template>
+
+    <template id="payment_ifthenpay_oficial_inline_form_details" inherit_id="payment.method_form">
+        <xpath expr="//div[@name='o_payment_inline_form']" position="inside">
+            <div t-if="pm_sudo.code == 'ifthenpay'"
+                 class="row o_payment_provider"
+                 data-provider-code="ifthenpay">
+            </div>
+        </xpath>
+    </template>
+
+</odoo>
