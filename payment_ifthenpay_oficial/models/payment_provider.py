@@ -15,7 +15,8 @@ class PaymentProvider(models.Model):
     _inherit = 'payment.provider'
 
     code = fields.Selection(
-        selection_add=[('ifthenpay', 'ifthenpay')], ondelete={'ifthenpay': 'set default'}
+        selection_add=[('ifthenpay', 'ifthenpay gateway')], 
+        ondelete={'ifthenpay': 'set default'}
     )
     
     # --- Campos de Configuração da ifthenpay ---

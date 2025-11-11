@@ -182,7 +182,8 @@ class IfthenpayController(http.Controller):
                     return_tx = tx._ifthenpay_poll_status(tx_id_ifthen)
 
                     if return_tx and return_tx.get("PaymentMethod") in ("CCARD", "APPLE", "GOOGLE"):
-                        tx._set_done()
+                        get_params['apk'] = provider.ifthenpay_api_key
+                        request.env['payment.transaction'].sudo()._handle_notification_data('ifthenpay', get_params)
                         return request.render('payment_ifthenpay_oficial.ifthenpay_iframe_post_message_template', {
                             'payment_status': 'success',
                             'message': 'Pagamento realizado com sucesso!',

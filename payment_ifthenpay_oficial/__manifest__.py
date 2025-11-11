@@ -1,5 +1,5 @@
 {
-    'name': "ifthenpay gateway",
+    'name': "Payment Provider: ifthenpay gateway",
     'version': '18.0.0.0.1',
     'author': "ifthenpay",
     'sequence': 350,
@@ -28,13 +28,14 @@ For details, refer to our Privacy Policy: https://ifthenpay.com/politica-de-priv
         'data/payment_method_data.xml',
         'data/payment_provider_data.xml',
     ],
-    'installable': True,
-    'application': True,
-    'auto_install': False,
     'assets': {
         'web.assets_frontend': [
             'payment_ifthenpay_oficial/static/src/**/*',
         ],
     },
+    'post_init_hook': 'post_init_hook',
+    'uninstall_hook': 'uninstall_hook',
+    'application': True,
+    'installable': True,
     'license': 'OPL-1',
 }
