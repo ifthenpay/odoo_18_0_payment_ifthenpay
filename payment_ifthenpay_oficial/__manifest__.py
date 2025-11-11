@@ -38,4 +38,5 @@ For details, refer to our Privacy Policy: https://ifthenpay.com/politica-de-priv
     'application': True,
     'installable': True,
     'license': 'OPL-1',
+    'images': ['static/description/banner.png'],
 }
