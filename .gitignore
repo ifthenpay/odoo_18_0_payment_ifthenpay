@@ -1,3 +1,7 @@
 /__pycache__
 /controllers/__pycache__
 /models/__pycache__
+
+/payment_ifthenpay_oficial/__pycache__
+/payment_ifthenpay_oficial/controllers/__pycache__
+/payment_ifthenpay_oficial/models/__pycache__

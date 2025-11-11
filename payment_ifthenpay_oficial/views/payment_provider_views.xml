@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <record id="acquirer_form_ifthenpay" model="ir.ui.view">
+    <field name="name">payment.provider.form.ifthenpay</field>
+    <field name="model">payment.provider</field>
+    <field name="inherit_id" ref="payment.payment_provider_form"/>
+    <field name="arch" type="xml">
+      <group name="provider_credentials" position="inside">
+          <group invisible="code != 'ifthenpay'">
+            <label for="ifthenpay_api_key"/><div class="o_row"><field name="ifthenpay_api_key"/></div>
+            <label for="ifthenpay_gateway_key"/><div class="o_row"><field name="ifthenpay_gateway_key" readonly="1" force_save="1"/></div>
+            <label for="ifthenpay_email_account"/><div class="o_row"><field name="ifthenpay_email_account" readonly="1" force_save="1"/></div>
+            <label for="ifthenpay_store_name"/><div class="o_row"><field name="ifthenpay_store_name" readonly="1" force_save="1"/></div>
+            <label for="ifthenpay_expiry_days"/><div class="o_row"><field name="ifthenpay_expiry_days" readonly="1" force_save="1"/></div>
+            <label for="url_base"/><div class="o_row"><field name="url_base" readonly="1" force_save="1"/></div>
+            <label for="ifthenpay_accounts_info"/><div class="o_row"><field name="ifthenpay_accounts_info" readonly="1" force_save="1"/></div>
+          </group>
+      </group>
+    </field>
+  </record>
+</odoo>
