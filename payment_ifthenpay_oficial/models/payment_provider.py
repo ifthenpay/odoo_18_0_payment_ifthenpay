@@ -20,7 +20,7 @@ class PaymentProvider(models.Model):
     )
     
     # --- Campos de Configuração da ifthenpay ---
-    ifthenpay_api_key = fields.Char(_("ClientID (backoffice)"), required_if_provider='ifthenpay', groups='base.group_user', help=_("The ClientID provided by ifthenpay."))
+    ifthenpay_api_key = fields.Char(_("APIToken (backoffice)"), required_if_provider='ifthenpay', groups='base.group_user', help=_("The APIToken provided by ifthenpay."))
     ifthenpay_email_account = fields.Char(
         string=_("E-mail"),
         help=_("The public business email solely used to identify the account with ifthenpay"),
